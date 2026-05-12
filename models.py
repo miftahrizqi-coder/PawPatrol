@@ -64,8 +64,6 @@ class Users(Base):
 
     alamat = Column(Text, nullable=True)
 
-    no_hp = Column(String(20), nullable=True)
-
     created_at = Column(
         DateTime,
         default=datetime.utcnow
@@ -128,8 +126,6 @@ class Animals(Base):
     nama_hewan = Column(String(100), nullable=False)
 
     umur = Column(Integer, nullable=False)
-
-    jenis_kelamin = Column(String(20), nullable=True)
 
     deskripsi = Column(Text, nullable=True)
 
@@ -382,11 +378,6 @@ class GroomingBookings(Base):
 
     booking_date = Column(
         Date,
-        nullable=False
-    )
-
-    booking_time = Column(
-        Time,
         nullable=False
     )
 

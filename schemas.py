@@ -1,44 +1,60 @@
 # schemas.py
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import date
+from datetime import datetime, date, time
 
 
 # ======================================================
-# USER
+# USERS
 # ======================================================
 
 class UserBase(BaseModel):
     nama: str
-    email: str
+    email: EmailStr
     alamat: Optional[str] = None
 
 
 class UserCreate(UserBase):
-    pass
+    password: str
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserUpdate(BaseModel):
+    nama: Optional[str] = None
+    email: Optional[EmailStr] = None
+    alamat: Optional[str] = None
 
 
 class UserOut(UserBase):
     id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
 
 
 # ======================================================
-# KATEGORI HEWAN
+# CATEGORIES
 # ======================================================
 
-class KategoriHewanBase(BaseModel):
+class CategoryBase(BaseModel):
     nama_kategori: str
 
 
-class KategoriHewanCreate(KategoriHewanBase):
+class CategoryCreate(CategoryBase):
     pass
 
 
-class KategoriHewanOut(KategoriHewanBase):
+class CategoryUpdate(BaseModel):
+    nama_kategori: Optional[str] = None
+
+
+class CategoryOut(CategoryBase):
     id: int
 
     class Config:
@@ -46,95 +62,103 @@ class KategoriHewanOut(KategoriHewanBase):
 
 
 # ======================================================
-# HEWAN
+# ANIMALS
 # ======================================================
 
-class HewanBase(BaseModel):
+class AnimalBase(BaseModel):
     nama_hewan: str
     umur: int
+    deskripsi: Optional[str] = None
     foto: Optional[str] = None
-    status: str
-    id_kategori: int
-    id_user: Optional[int] = None
+    kategori_id: int
 
 
-class HewanCreate(HewanBase):
+class AnimalCreate(AnimalBase):
     pass
 
 
-class HewanUpdate(BaseModel):
+class AnimalUpdate(BaseModel):
     nama_hewan: Optional[str] = None
     umur: Optional[int] = None
+    deskripsi: Optional[str] = None
     foto: Optional[str] = None
-    status: Optional[str] = None
-    id_kategori: Optional[int] = None
-    id_user: Optional[int] = None
+    status_adopsi: Optional[str] = None
+    kategori_id: Optional[int] = None
+    adopter_id: Optional[int] = None
 
 
-class HewanOut(BaseModel):
+class AnimalOut(BaseModel):
     id: int
     nama_hewan: str
     umur: int
+    deskripsi: Optional[str]
     foto: Optional[str]
-    status: str
 
-    kategori: Optional[KategoriHewanOut]
-    user: Optional[UserOut]
+    status_adopsi: str
+
+    created_at: datetime
+
+    category: Optional[CategoryOut]
+
+    adopter: Optional[UserOut]
 
     class Config:
         from_attributes = True
 
 
 # ======================================================
-# PRODUK
+# PRODUCTS
 # ======================================================
 
-class ProdukBase(BaseModel):
+class ProductBase(BaseModel):
     nama_produk: str
+    deskripsi: Optional[str] = None
     harga: int
     stok: int
-    gambar: Optional[str] = None
+    foto: Optional[str] = None
 
 
-class ProdukCreate(ProdukBase):
+class ProductCreate(ProductBase):
     pass
 
 
-class ProdukUpdate(BaseModel):
+class ProductUpdate(BaseModel):
     nama_produk: Optional[str] = None
+    deskripsi: Optional[str] = None
     harga: Optional[int] = None
     stok: Optional[int] = None
-    gambar: Optional[str] = None
+    foto: Optional[str] = None
 
 
-class ProdukOut(ProdukBase):
+class ProductOut(ProductBase):
     id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
 
 
 # ======================================================
-# GROOMING
+# GROOMING SERVICES
 # ======================================================
 
-class GroomingBase(BaseModel):
+class GroomingServiceBase(BaseModel):
     nama_layanan: str
     harga: int
     deskripsi: Optional[str] = None
 
 
-class GroomingCreate(GroomingBase):
+class GroomingServiceCreate(GroomingServiceBase):
     pass
 
 
-class GroomingUpdate(BaseModel):
+class GroomingServiceUpdate(BaseModel):
     nama_layanan: Optional[str] = None
     harga: Optional[int] = None
     deskripsi: Optional[str] = None
 
 
-class GroomingOut(GroomingBase):
+class GroomingServiceOut(GroomingServiceBase):
     id: int
 
     class Config:
@@ -142,50 +166,131 @@ class GroomingOut(GroomingBase):
 
 
 # ======================================================
-# TRANSAKSI
+# ORDERS
 # ======================================================
 
-class TransaksiBase(BaseModel):
-    id_user: int
-
-    id_produk: Optional[int] = None
-    id_grooming: Optional[int] = None
-    id_hewan: Optional[int] = None
-
-    tanggal: date
-    total: int
-
-    jenis_transaksi: str
-    status_pembayaran: str
+class OrderBase(BaseModel):
+    total_harga: int
 
 
-class TransaksiCreate(TransaksiBase):
+class OrderCreate(OrderBase):
+    user_id: int
+
+
+class OrderUpdate(BaseModel):
+    total_harga: Optional[int] = None
+    status: Optional[str] = None
+
+
+class OrderOut(BaseModel):
+    id: int
+
+    total_harga: int
+
+    status: str
+
+    created_at: datetime
+
+    user: Optional[UserOut]
+
+    class Config:
+        from_attributes = True
+
+
+# ======================================================
+# ORDER PRODUCTS
+# ======================================================
+
+class OrderProductBase(BaseModel):
+    quantity: int
+    harga: int
+    order_id: int
+    product_id: int
+
+
+class OrderProductCreate(OrderProductBase):
     pass
 
 
-class TransaksiUpdate(BaseModel):
-    id_produk: Optional[int] = None
-    id_grooming: Optional[int] = None
-    id_hewan: Optional[int] = None
-
-    total: Optional[int] = None
-    jenis_transaksi: Optional[str] = None
-    status_pembayaran: Optional[str] = None
+class OrderProductUpdate(BaseModel):
+    quantity: Optional[int] = None
+    harga: Optional[int] = None
 
 
-class TransaksiOut(BaseModel):
+class OrderProductOut(BaseModel):
+    id: int
+    quantity: int
+    harga: int
+    product: Optional[ProductOut]
+
+    class Config:
+        from_attributes = True
+
+
+# ======================================================
+# ANIMAL ADOPTIONS
+# ======================================================
+
+class AnimalAdoptionBase(BaseModel):
+    biaya_adopsi: int
+    order_id: int
+    animal_id: int
+
+
+class AnimalAdoptionCreate(AnimalAdoptionBase):
+    pass
+
+
+class AnimalAdoptionUpdate(BaseModel):
+    biaya_adopsi: Optional[int] = None
+    status: Optional[str] = None
+
+
+class AnimalAdoptionOut(BaseModel):
     id: int
 
-    tanggal: date
-    total: int
+    biaya_adopsi: int
 
-    jenis_transaksi: str
-    status_pembayaran: str
+    status: str
 
+    animal: Optional[AnimalOut]
+
+    class Config:
+        from_attributes = True
+
+
+# ======================================================
+# GROOMING BOOKINGS
+# ======================================================
+
+class GroomingBookingBase(BaseModel):
+    booking_date: date
+
+    catatan: Optional[str] = None
+
+    order_id: int
+
+    user_id: int
+
+    grooming_service_id: int
+
+
+class GroomingBookingCreate(GroomingBookingBase):
+    pass
+
+
+class GroomingBookingUpdate(BaseModel):
+    booking_date: Optional[date] = None
+    catatan: Optional[str] = None
+    status: Optional[str] = None
+
+
+class GroomingBookingOut(BaseModel):
+    id: int
+    booking_date: date
+    catatan: Optional[str]
+    status: str
     user: Optional[UserOut]
-    produk: Optional[ProdukOut]
-    grooming: Optional[GroomingOut]
-    hewan: Optional[HewanOut]
-
+    grooming_service: Optional[GroomingServiceOut]
     class Config:
         from_attributes = True

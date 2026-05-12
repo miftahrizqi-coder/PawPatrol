@@ -23,22 +23,20 @@ def get_user_by_email(db: Session, email: str):
     ).first()
 
 
-def get_all_users(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100
-):
+def get_all_users(db: Session, skip=0, limit=100):
     return db.query(models.Users)\
         .offset(skip)\
         .limit(limit)\
         .all()
 
 
-def create_user(
-    db: Session,
-    user: schemas.UserCreate
-):
-    db_user = models.Users(**user.model_dump())
+def create_user(db: Session, user: schemas.UserCreate):
+    db_user = models.Users(
+        nama=user.nama,
+        email=user.email,
+        password_hash=user.password,   # nanti diganti bcrypt
+        alamat=user.alamat,
+    )
 
     db.add(db_user)
     db.commit()
@@ -47,19 +45,16 @@ def create_user(
     return db_user
 
 
-def update_user(
-    db: Session,
-    user_id: int,
-    user: schemas.UserCreate
-):
+def update_user(db: Session, user_id: int, user: schemas.UserUpdate):
     db_user = get_user(db, user_id)
 
     if not db_user:
         return None
 
-    db_user.nama = user.nama
-    db_user.email = user.email
-    db_user.alamat = user.alamat
+    data = user.model_dump(exclude_unset=True)
+
+    for k, v in data.items():
+        setattr(db_user, k, v)
 
     db.commit()
     db.refresh(db_user)
@@ -67,10 +62,7 @@ def update_user(
     return db_user
 
 
-def delete_user(
-    db: Session,
-    user_id: int
-):
+def delete_user(db: Session, user_id: int):
     db_user = get_user(db, user_id)
 
     if not db_user:
@@ -83,502 +75,444 @@ def delete_user(
 
 
 # ======================================================
-# KATEGORI HEWAN
+# CATEGORIES
 # ======================================================
 
-def get_kategori_hewan(
-    db: Session,
-    kategori_id: int
-):
-    return db.query(models.KategoriHewan).filter(
-        models.KategoriHewan.id == kategori_id
+def get_category(db: Session, category_id: int):
+    return db.query(models.Categories).filter(
+        models.Categories.id == category_id
     ).first()
 
 
-def get_all_kategori_hewan(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100
-):
-    return db.query(models.KategoriHewan)\
+def get_all_categories(db: Session, skip=0, limit=100):
+    return db.query(models.Categories)\
         .offset(skip)\
         .limit(limit)\
         .all()
 
 
-def create_kategori_hewan(
-    db: Session,
-    kategori: schemas.KategoriHewanCreate
-):
-    db_kategori = models.KategoriHewan(
-        **kategori.model_dump()
-    )
+def create_category(db: Session, category: schemas.CategoryCreate):
+    db_obj = models.Categories(**category.model_dump())
 
-    db.add(db_kategori)
+    db.add(db_obj)
     db.commit()
-    db.refresh(db_kategori)
+    db.refresh(db_obj)
 
-    return db_kategori
+    return db_obj
 
 
-def update_kategori_hewan(
-    db: Session,
-    kategori_id: int,
-    kategori: schemas.KategoriHewanCreate
-):
-    db_kategori = get_kategori_hewan(
-        db,
-        kategori_id
-    )
+def update_category(db: Session, category_id: int,
+                    category: schemas.CategoryUpdate):
 
-    if not db_kategori:
+    db_obj = get_category(db, category_id)
+
+    if not db_obj:
         return None
 
-    db_kategori.nama_kategori = kategori.nama_kategori
+    data = category.model_dump(exclude_unset=True)
+
+    for k, v in data.items():
+        setattr(db_obj, k, v)
 
     db.commit()
-    db.refresh(db_kategori)
+    db.refresh(db_obj)
 
-    return db_kategori
+    return db_obj
 
 
-def delete_kategori_hewan(
-    db: Session,
-    kategori_id: int
-):
-    db_kategori = get_kategori_hewan(
-        db,
-        kategori_id
-    )
+def delete_category(db: Session, category_id: int):
+    db_obj = get_category(db, category_id)
 
-    if not db_kategori:
+    if not db_obj:
         return False
 
-    cek_hewan = db.query(models.Hewan).filter(
-        models.Hewan.id_kategori == kategori_id
+    count = db.query(models.Animals).filter(
+        models.Animals.kategori_id == category_id
     ).count()
 
-    if cek_hewan > 0:
+    if count > 0:
         return False
 
-    db.delete(db_kategori)
+    db.delete(db_obj)
     db.commit()
 
     return True
 
 
 # ======================================================
-# HEWAN
+# ANIMALS
 # ======================================================
 
-def get_hewan(
-    db: Session,
-    hewan_id: int
-):
-    return db.query(models.Hewan).filter(
-        models.Hewan.id == hewan_id
+def get_animal(db: Session, animal_id: int):
+    return db.query(models.Animals).filter(
+        models.Animals.id == animal_id
     ).first()
 
 
-def get_all_hewan(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100,
-    kategori_id: Optional[int] = None,
-    status: Optional[str] = None
+def get_all_animals(
+        db: Session,
+        skip=0,
+        limit=100,
+        kategori_id: Optional[int] = None,
+        status: Optional[str] = None
 ):
-
-    query = db.query(models.Hewan)
+    query = db.query(models.Animals)
 
     if kategori_id:
         query = query.filter(
-            models.Hewan.id_kategori == kategori_id
+            models.Animals.kategori_id == kategori_id
         )
 
     if status:
         query = query.filter(
-            models.Hewan.status == status
+            models.Animals.status_adopsi == status
         )
 
     return query.offset(skip).limit(limit).all()
 
 
-def create_hewan(
-    db: Session,
-    hewan: schemas.HewanCreate
-):
-    db_hewan = models.Hewan(
-        **hewan.model_dump()
-    )
+def create_animal(db: Session, animal: schemas.AnimalCreate):
+    db_obj = models.Animals(**animal.model_dump())
 
-    db.add(db_hewan)
+    db.add(db_obj)
     db.commit()
-    db.refresh(db_hewan)
+    db.refresh(db_obj)
 
-    return db_hewan
+    return db_obj
 
 
-def update_hewan(
-    db: Session,
-    hewan_id: int,
-    hewan: schemas.HewanUpdate
-):
-    db_hewan = get_hewan(db, hewan_id)
+def update_animal(db: Session, animal_id: int,
+                  animal: schemas.AnimalUpdate):
 
-    if not db_hewan:
+    db_obj = get_animal(db, animal_id)
+
+    if not db_obj:
         return None
 
-    update_data = hewan.model_dump(
-        exclude_unset=True
-    )
+    data = animal.model_dump(exclude_unset=True)
 
-    for key, value in update_data.items():
-        setattr(db_hewan, key, value)
+    for k, v in data.items():
+        setattr(db_obj, k, v)
 
     db.commit()
-    db.refresh(db_hewan)
+    db.refresh(db_obj)
 
-    return db_hewan
+    return db_obj
 
 
-def delete_hewan(
-    db: Session,
-    hewan_id: int
-):
-    db_hewan = get_hewan(db, hewan_id)
+def delete_animal(db: Session, animal_id: int):
+    db_obj = get_animal(db, animal_id)
 
-    if not db_hewan:
+    if not db_obj:
         return False
 
-    db.delete(db_hewan)
+    db.delete(db_obj)
     db.commit()
 
     return True
 
 
 # ======================================================
-# PRODUK
+# PRODUCTS
 # ======================================================
 
-def get_produk(
-    db: Session,
-    produk_id: int
-):
-    return db.query(models.Produk).filter(
-        models.Produk.id == produk_id
+def get_product(db: Session, product_id: int):
+    return db.query(models.Products).filter(
+        models.Products.id == product_id
     ).first()
 
 
-def get_all_produk(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100
-):
-    return db.query(models.Produk)\
+def get_all_products(db: Session, skip=0, limit=100):
+    return db.query(models.Products)\
         .offset(skip)\
         .limit(limit)\
         .all()
 
 
-def create_produk(
-    db: Session,
-    produk: schemas.ProdukCreate
-):
-    db_produk = models.Produk(
-        **produk.model_dump()
-    )
+def create_product(db: Session, product: schemas.ProductCreate):
+    db_obj = models.Products(**product.model_dump())
 
-    db.add(db_produk)
+    db.add(db_obj)
     db.commit()
-    db.refresh(db_produk)
+    db.refresh(db_obj)
 
-    return db_produk
+    return db_obj
 
 
-def update_produk(
-    db: Session,
-    produk_id: int,
-    produk: schemas.ProdukUpdate
-):
-    db_produk = get_produk(db, produk_id)
+def update_product(db: Session, product_id: int,
+                   product: schemas.ProductUpdate):
 
-    if not db_produk:
+    db_obj = get_product(db, product_id)
+
+    if not db_obj:
         return None
 
-    update_data = produk.model_dump(
-        exclude_unset=True
-    )
+    data = product.model_dump(exclude_unset=True)
 
-    for key, value in update_data.items():
-        setattr(db_produk, key, value)
+    for k, v in data.items():
+        setattr(db_obj, k, v)
 
     db.commit()
-    db.refresh(db_produk)
+    db.refresh(db_obj)
 
-    return db_produk
+    return db_obj
 
 
-def delete_produk(
-    db: Session,
-    produk_id: int
-):
-    db_produk = get_produk(db, produk_id)
+def delete_product(db: Session, product_id: int):
+    db_obj = get_product(db, product_id)
 
-    if not db_produk:
+    if not db_obj:
         return False
 
-    db.delete(db_produk)
+    db.delete(db_obj)
     db.commit()
 
     return True
 
 
 # ======================================================
-# GROOMING
+# GROOMING SERVICES
 # ======================================================
 
-def get_grooming(
-    db: Session,
-    grooming_id: int
-):
-    return db.query(models.Grooming).filter(
-        models.Grooming.id == grooming_id
+def get_grooming_service(db: Session, service_id: int):
+    return db.query(models.GroomingServices).filter(
+        models.GroomingServices.id == service_id
     ).first()
 
 
-def get_all_grooming(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100
-):
-    return db.query(models.Grooming)\
+def get_all_grooming_services(db: Session,
+                              skip=0,
+                              limit=100):
+    return db.query(models.GroomingServices)\
         .offset(skip)\
         .limit(limit)\
         .all()
 
 
-def create_grooming(
-    db: Session,
-    grooming: schemas.GroomingCreate
+def create_grooming_service(
+        db: Session,
+        service: schemas.GroomingServiceCreate
 ):
-    db_grooming = models.Grooming(
-        **grooming.model_dump()
+    db_obj = models.GroomingServices(
+        **service.model_dump()
     )
 
-    db.add(db_grooming)
+    db.add(db_obj)
     db.commit()
-    db.refresh(db_grooming)
+    db.refresh(db_obj)
 
-    return db_grooming
+    return db_obj
 
 
-def update_grooming(
-    db: Session,
-    grooming_id: int,
-    grooming: schemas.GroomingUpdate
+def update_grooming_service(
+        db: Session,
+        service_id: int,
+        service: schemas.GroomingServiceUpdate
 ):
-    db_grooming = get_grooming(
-        db,
-        grooming_id
-    )
+    db_obj = get_grooming_service(db, service_id)
 
-    if not db_grooming:
+    if not db_obj:
         return None
 
-    update_data = grooming.model_dump(
-        exclude_unset=True
-    )
+    data = service.model_dump(exclude_unset=True)
 
-    for key, value in update_data.items():
-        setattr(db_grooming, key, value)
+    for k, v in data.items():
+        setattr(db_obj, k, v)
 
     db.commit()
-    db.refresh(db_grooming)
+    db.refresh(db_obj)
 
-    return db_grooming
+    return db_obj
 
 
-def delete_grooming(
-    db: Session,
-    grooming_id: int
+def delete_grooming_service(
+        db: Session,
+        service_id: int
 ):
-    db_grooming = get_grooming(
-        db,
-        grooming_id
-    )
+    db_obj = get_grooming_service(db, service_id)
 
-    if not db_grooming:
+    if not db_obj:
         return False
 
-    db.delete(db_grooming)
+    db.delete(db_obj)
     db.commit()
 
     return True
 
 
 # ======================================================
-# TRANSAKSI
+# ORDERS
 # ======================================================
 
-def get_transaksi(
-    db: Session,
-    transaksi_id: int
-):
-    return db.query(models.Transaksi).filter(
-        models.Transaksi.id == transaksi_id
+def get_order(db: Session, order_id: int):
+    return db.query(models.Orders).filter(
+        models.Orders.id == order_id
     ).first()
 
 
-def get_all_transaksi(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100,
-    user_id: Optional[int] = None,
-    status_pembayaran: Optional[str] = None,
-    jenis_transaksi: Optional[str] = None
+def get_all_orders(db: Session,
+                   skip=0,
+                   limit=100):
+    return db.query(models.Orders)\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+
+
+def create_order(db: Session,
+                 order: schemas.OrderCreate):
+
+    db_obj = models.Orders(
+        user_id=order.user_id,
+        total_harga=order.total_harga
+    )
+
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+
+    return db_obj
+
+
+def update_order_status(
+        db: Session,
+        order_id: int,
+        status: str
 ):
+    db_obj = get_order(db, order_id)
 
-    query = db.query(models.Transaksi)
-
-    if user_id:
-        query = query.filter(
-            models.Transaksi.id_user == user_id
-        )
-
-    if status_pembayaran:
-        query = query.filter(
-            models.Transaksi.status_pembayaran == status_pembayaran
-        )
-
-    if jenis_transaksi:
-        query = query.filter(
-            models.Transaksi.jenis_transaksi == jenis_transaksi
-        )
-
-    return query.offset(skip).limit(limit).all()
-
-
-def create_transaksi(
-    db: Session,
-    transaksi: schemas.TransaksiCreate
-):
-
-    total_harga = 0
-
-    # ==================================================
-    # TRANSAKSI PRODUK
-    # ==================================================
-    if transaksi.jenis_transaksi == "produk":
-
-        produk = db.query(models.Produk).filter(
-            models.Produk.id == transaksi.id_produk
-        ).first()
-
-        if not produk:
-            return None
-
-        if produk.stok <= 0:
-            return None
-
-        total_harga = produk.harga
-
-        # kurangi stok
-        produk.stok -= 1
-
-    # ==================================================
-    # TRANSAKSI GROOMING
-    # ==================================================
-    elif transaksi.jenis_transaksi == "grooming":
-
-        grooming = db.query(models.Grooming).filter(
-            models.Grooming.id == transaksi.id_grooming
-        ).first()
-
-        if not grooming:
-            return None
-
-        total_harga = grooming.harga
-
-    # ==================================================
-    # TRANSAKSI ADOPSI
-    # ==================================================
-    elif transaksi.jenis_transaksi == "adopsi":
-
-        hewan = db.query(models.Hewan).filter(
-            models.Hewan.id == transaksi.id_hewan
-        ).first()
-
-        if not hewan:
-            return None
-
-        if hewan.status == "diadopsi":
-            return None
-
-        # contoh biaya adopsi
-        total_harga = transaksi.total
-
-        # update status hewan
-        hewan.status = "diadopsi"
-        hewan.id_user = transaksi.id_user
-
-    else:
+    if not db_obj:
         return None
 
-    # ==================================================
-    # CREATE TRANSAKSI
-    # ==================================================
-    db_transaksi = models.Transaksi(
-        id_user=transaksi.id_user,
-        id_produk=transaksi.id_produk,
-        id_grooming=transaksi.id_grooming,
-        id_hewan=transaksi.id_hewan,
-        tanggal=transaksi.tanggal,
-        total=total_harga,
-        jenis_transaksi=transaksi.jenis_transaksi,
-        status_pembayaran=transaksi.status_pembayaran
-    )
+    db_obj.status = status
 
-    db.add(db_transaksi)
     db.commit()
-    db.refresh(db_transaksi)
+    db.refresh(db_obj)
 
-    return db_transaksi
+    return db_obj
 
 
-def update_status_transaksi(
-    db: Session,
-    transaksi_id: int,
-    status_pembayaran: str
+# ======================================================
+# ORDER PRODUCT
+# ======================================================
+
+def create_order_product(
+        db: Session,
+        item: schemas.OrderProductCreate
 ):
-    db_transaksi = get_transaksi(
+    product = get_product(
         db,
-        transaksi_id
+        item.product_id
     )
 
-    if not db_transaksi:
+    if not product:
         return None
 
-    db_transaksi.status_pembayaran = status_pembayaran
+    if product.stok < item.quantity:
+        return None
 
-    db.commit()
-    db.refresh(db_transaksi)
+    product.stok -= item.quantity
 
-    return db_transaksi
-
-
-def delete_transaksi(
-    db: Session,
-    transaksi_id: int
-):
-    db_transaksi = get_transaksi(
-        db,
-        transaksi_id
+    db_obj = models.OrderProducts(
+        **item.model_dump()
     )
 
-    if not db_transaksi:
-        return False
-
-    db.delete(db_transaksi)
+    db.add(db_obj)
     db.commit()
+    db.refresh(db_obj)
 
-    return True
+    return db_obj
+
+
+# ======================================================
+# ANIMAL ADOPTION
+# ======================================================
+
+def create_animal_adoption(
+        db: Session,
+        adoption: schemas.AnimalAdoptionCreate
+):
+    animal = get_animal(
+        db,
+        adoption.animal_id
+    )
+
+    if not animal:
+        return None
+
+    if animal.status_adopsi == "diadopsi":
+        return None
+
+    animal.status_adopsi = "diadopsi"
+
+    db_obj = models.AnimalAdoptions(
+        **adoption.model_dump()
+    )
+
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+
+    return db_obj
+
+
+# ======================================================
+# GROOMING BOOKING
+# ======================================================
+
+def create_grooming_booking(
+        db: Session,
+        booking: schemas.GroomingBookingCreate
+):
+    service = get_grooming_service(
+        db,
+        booking.grooming_service_id
+    )
+
+    if not service:
+        return None
+
+    bentrok = db.query(
+        models.GroomingBookings
+    ).filter(
+        models.GroomingBookings.booking_date ==
+        booking.booking_date,
+
+        models.GroomingBookings.booking_time ==
+        booking.booking_time
+    ).first()
+
+    if bentrok:
+        return None
+
+    db_obj = models.GroomingBookings(
+        **booking.model_dump()
+    )
+
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+
+    return db_obj
+
+
+def update_grooming_booking_status(
+        db: Session,
+        booking_id: int,
+        status: str
+):
+    booking = db.query(
+        models.GroomingBookings
+    ).filter(
+        models.GroomingBookings.id == booking_id
+    ).first()
+
+    if not booking:
+        return None
+
+    booking.status = status
+
+    db.commit()
+    db.refresh(booking)
+
+    return booking

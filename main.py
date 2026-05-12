@@ -24,8 +24,8 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Pet Shop API",
-    description="API Pet Shop, Adopsi Hewan, dan Grooming",
-    version="1.0.0"
+    description="API Pet Shop, Adopsi Hewan, Produk, dan Grooming",
+    version="2.0.0"
 )
 
 
@@ -77,7 +77,10 @@ def create_user(
             detail="Email sudah digunakan"
         )
 
-    return crud.create_user(db, user)
+    return crud.create_user(
+        db,
+        user
+    )
 
 
 @app.get(
@@ -100,12 +103,15 @@ def get_users(
     "/users/{user_id}",
     response_model=schemas.UserOut
 )
-def get_user(
+def get_user_by_id(
     user_id: int,
     db: Session = Depends(get_db)
 ):
 
-    user = crud.get_user(db, user_id)
+    user = crud.get_user(
+        db,
+        user_id
+    )
 
     if not user:
         raise HTTPException(
@@ -122,23 +128,23 @@ def get_user(
 )
 def update_user(
     user_id: int,
-    user: schemas.UserCreate,
+    user: schemas.UserUpdate,
     db: Session = Depends(get_db)
 ):
 
-    db_user = crud.update_user(
+    updated = crud.update_user(
         db,
         user_id,
         user
     )
 
-    if not db_user:
+    if not updated:
         raise HTTPException(
             status_code=404,
             detail="User tidak ditemukan"
         )
 
-    return db_user
+    return updated
 
 
 @app.delete("/users/{user_id}")
@@ -164,33 +170,33 @@ def delete_user(
 
 
 # ======================================================
-# KATEGORI HEWAN
+# CATEGORIES
 # ======================================================
 
 @app.post(
-    "/kategori-hewan",
-    response_model=schemas.KategoriHewanOut
+    "/categories",
+    response_model=schemas.CategoryOut
 )
-def create_kategori_hewan(
-    kategori: schemas.KategoriHewanCreate,
+def create_category(
+    category: schemas.CategoryCreate,
     db: Session = Depends(get_db)
 ):
-    return crud.create_kategori_hewan(
+    return crud.create_category(
         db,
-        kategori
+        category
     )
 
 
 @app.get(
-    "/kategori-hewan",
-    response_model=List[schemas.KategoriHewanOut]
+    "/categories",
+    response_model=List[schemas.CategoryOut]
 )
-def get_kategori_hewan(
+def get_categories(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    return crud.get_all_kategori_hewan(
+    return crud.get_all_categories(
         db,
         skip,
         limit
@@ -198,42 +204,42 @@ def get_kategori_hewan(
 
 
 @app.get(
-    "/kategori-hewan/{kategori_id}",
-    response_model=schemas.KategoriHewanOut
+    "/categories/{category_id}",
+    response_model=schemas.CategoryOut
 )
-def get_kategori_by_id(
-    kategori_id: int,
+def get_category_by_id(
+    category_id: int,
     db: Session = Depends(get_db)
 ):
 
-    kategori = crud.get_kategori_hewan(
+    category = crud.get_category(
         db,
-        kategori_id
+        category_id
     )
 
-    if not kategori:
+    if not category:
         raise HTTPException(
             status_code=404,
             detail="Kategori tidak ditemukan"
         )
 
-    return kategori
+    return category
 
 
 @app.put(
-    "/kategori-hewan/{kategori_id}",
-    response_model=schemas.KategoriHewanOut
+    "/categories/{category_id}",
+    response_model=schemas.CategoryOut
 )
-def update_kategori(
-    kategori_id: int,
-    kategori: schemas.KategoriHewanCreate,
+def update_category(
+    category_id: int,
+    category: schemas.CategoryUpdate,
     db: Session = Depends(get_db)
 ):
 
-    updated = crud.update_kategori_hewan(
+    updated = crud.update_category(
         db,
-        kategori_id,
-        kategori
+        category_id,
+        category
     )
 
     if not updated:
@@ -245,15 +251,15 @@ def update_kategori(
     return updated
 
 
-@app.delete("/kategori-hewan/{kategori_id}")
-def delete_kategori(
-    kategori_id: int,
+@app.delete("/categories/{category_id}")
+def delete_category(
+    category_id: int,
     db: Session = Depends(get_db)
 ):
 
-    deleted = crud.delete_kategori_hewan(
+    deleted = crud.delete_category(
         db,
-        kategori_id
+        category_id
     )
 
     if not deleted:
@@ -268,35 +274,35 @@ def delete_kategori(
 
 
 # ======================================================
-# HEWAN
+# ANIMALS
 # ======================================================
 
 @app.post(
-    "/hewan",
-    response_model=schemas.HewanOut
+    "/animals",
+    response_model=schemas.AnimalOut
 )
-def create_hewan(
-    hewan: schemas.HewanCreate,
+def create_animal(
+    animal: schemas.AnimalCreate,
     db: Session = Depends(get_db)
 ):
-    return crud.create_hewan(
+    return crud.create_animal(
         db,
-        hewan
+        animal
     )
 
 
 @app.get(
-    "/hewan",
-    response_model=List[schemas.HewanOut]
+    "/animals",
+    response_model=List[schemas.AnimalOut]
 )
-def get_hewan(
+def get_animals(
     skip: int = 0,
     limit: int = 100,
     kategori_id: Optional[int] = None,
     status: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    return crud.get_all_hewan(
+    return crud.get_all_animals(
         db,
         skip,
         limit,
@@ -306,42 +312,42 @@ def get_hewan(
 
 
 @app.get(
-    "/hewan/{hewan_id}",
-    response_model=schemas.HewanOut
+    "/animals/{animal_id}",
+    response_model=schemas.AnimalOut
 )
-def get_hewan_by_id(
-    hewan_id: int,
+def get_animal_by_id(
+    animal_id: int,
     db: Session = Depends(get_db)
 ):
 
-    hewan = crud.get_hewan(
+    animal = crud.get_animal(
         db,
-        hewan_id
+        animal_id
     )
 
-    if not hewan:
+    if not animal:
         raise HTTPException(
             status_code=404,
             detail="Hewan tidak ditemukan"
         )
 
-    return hewan
+    return animal
 
 
 @app.put(
-    "/hewan/{hewan_id}",
-    response_model=schemas.HewanOut
+    "/animals/{animal_id}",
+    response_model=schemas.AnimalOut
 )
-def update_hewan(
-    hewan_id: int,
-    hewan: schemas.HewanUpdate,
+def update_animal(
+    animal_id: int,
+    animal: schemas.AnimalUpdate,
     db: Session = Depends(get_db)
 ):
 
-    updated = crud.update_hewan(
+    updated = crud.update_animal(
         db,
-        hewan_id,
-        hewan
+        animal_id,
+        animal
     )
 
     if not updated:
@@ -353,15 +359,15 @@ def update_hewan(
     return updated
 
 
-@app.delete("/hewan/{hewan_id}")
-def delete_hewan(
-    hewan_id: int,
+@app.delete("/animals/{animal_id}")
+def delete_animal(
+    animal_id: int,
     db: Session = Depends(get_db)
 ):
 
-    deleted = crud.delete_hewan(
+    deleted = crud.delete_animal(
         db,
-        hewan_id
+        animal_id
     )
 
     if not deleted:
@@ -376,33 +382,33 @@ def delete_hewan(
 
 
 # ======================================================
-# PRODUK
+# PRODUCTS
 # ======================================================
 
 @app.post(
-    "/produk",
-    response_model=schemas.ProdukOut
+    "/products",
+    response_model=schemas.ProductOut
 )
-def create_produk(
-    produk: schemas.ProdukCreate,
+def create_product(
+    product: schemas.ProductCreate,
     db: Session = Depends(get_db)
 ):
-    return crud.create_produk(
+    return crud.create_product(
         db,
-        produk
+        product
     )
 
 
 @app.get(
-    "/produk",
-    response_model=List[schemas.ProdukOut]
+    "/products",
+    response_model=List[schemas.ProductOut]
 )
-def get_produk(
+def get_products(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    return crud.get_all_produk(
+    return crud.get_all_products(
         db,
         skip,
         limit
@@ -410,42 +416,42 @@ def get_produk(
 
 
 @app.get(
-    "/produk/{produk_id}",
-    response_model=schemas.ProdukOut
+    "/products/{product_id}",
+    response_model=schemas.ProductOut
 )
-def get_produk_by_id(
-    produk_id: int,
+def get_product_by_id(
+    product_id: int,
     db: Session = Depends(get_db)
 ):
 
-    produk = crud.get_produk(
+    product = crud.get_product(
         db,
-        produk_id
+        product_id
     )
 
-    if not produk:
+    if not product:
         raise HTTPException(
             status_code=404,
             detail="Produk tidak ditemukan"
         )
 
-    return produk
+    return product
 
 
 @app.put(
-    "/produk/{produk_id}",
-    response_model=schemas.ProdukOut
+    "/products/{product_id}",
+    response_model=schemas.ProductOut
 )
-def update_produk(
-    produk_id: int,
-    produk: schemas.ProdukUpdate,
+def update_product(
+    product_id: int,
+    product: schemas.ProductUpdate,
     db: Session = Depends(get_db)
 ):
 
-    updated = crud.update_produk(
+    updated = crud.update_product(
         db,
-        produk_id,
-        produk
+        product_id,
+        product
     )
 
     if not updated:
@@ -457,15 +463,15 @@ def update_produk(
     return updated
 
 
-@app.delete("/produk/{produk_id}")
-def delete_produk(
-    produk_id: int,
+@app.delete("/products/{product_id}")
+def delete_product(
+    product_id: int,
     db: Session = Depends(get_db)
 ):
 
-    deleted = crud.delete_produk(
+    deleted = crud.delete_product(
         db,
-        produk_id
+        product_id
     )
 
     if not deleted:
@@ -480,33 +486,33 @@ def delete_produk(
 
 
 # ======================================================
-# GROOMING
+# GROOMING SERVICES
 # ======================================================
 
 @app.post(
-    "/grooming",
-    response_model=schemas.GroomingOut
+    "/grooming-services",
+    response_model=schemas.GroomingServiceOut
 )
-def create_grooming(
-    grooming: schemas.GroomingCreate,
+def create_grooming_service(
+    service: schemas.GroomingServiceCreate,
     db: Session = Depends(get_db)
 ):
-    return crud.create_grooming(
+    return crud.create_grooming_service(
         db,
-        grooming
+        service
     )
 
 
 @app.get(
-    "/grooming",
-    response_model=List[schemas.GroomingOut]
+    "/grooming-services",
+    response_model=List[schemas.GroomingServiceOut]
 )
-def get_grooming(
+def get_grooming_services(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    return crud.get_all_grooming(
+    return crud.get_all_grooming_services(
         db,
         skip,
         limit
@@ -514,189 +520,258 @@ def get_grooming(
 
 
 @app.get(
-    "/grooming/{grooming_id}",
-    response_model=schemas.GroomingOut
+    "/grooming-services/{service_id}",
+    response_model=schemas.GroomingServiceOut
 )
-def get_grooming_by_id(
-    grooming_id: int,
+def get_grooming_service_by_id(
+    service_id: int,
     db: Session = Depends(get_db)
 ):
 
-    grooming = crud.get_grooming(
+    service = crud.get_grooming_service(
         db,
-        grooming_id
+        service_id
     )
 
-    if not grooming:
+    if not service:
         raise HTTPException(
             status_code=404,
-            detail="Grooming tidak ditemukan"
+            detail="Layanan grooming tidak ditemukan"
         )
 
-    return grooming
+    return service
 
 
 @app.put(
-    "/grooming/{grooming_id}",
-    response_model=schemas.GroomingOut
+    "/grooming-services/{service_id}",
+    response_model=schemas.GroomingServiceOut
 )
-def update_grooming(
-    grooming_id: int,
-    grooming: schemas.GroomingUpdate,
+def update_grooming_service(
+    service_id: int,
+    service: schemas.GroomingServiceUpdate,
     db: Session = Depends(get_db)
 ):
 
-    updated = crud.update_grooming(
+    updated = crud.update_grooming_service(
         db,
-        grooming_id,
-        grooming
+        service_id,
+        service
     )
 
     if not updated:
         raise HTTPException(
             status_code=404,
-            detail="Grooming tidak ditemukan"
+            detail="Layanan grooming tidak ditemukan"
         )
 
     return updated
 
 
-@app.delete("/grooming/{grooming_id}")
-def delete_grooming(
-    grooming_id: int,
+@app.delete("/grooming-services/{service_id}")
+def delete_grooming_service(
+    service_id: int,
     db: Session = Depends(get_db)
 ):
 
-    deleted = crud.delete_grooming(
+    deleted = crud.delete_grooming_service(
         db,
-        grooming_id
+        service_id
     )
 
     if not deleted:
         raise HTTPException(
             status_code=404,
-            detail="Grooming tidak ditemukan"
+            detail="Layanan grooming tidak ditemukan"
         )
 
     return {
-        "message": "Grooming berhasil dihapus"
+        "message": "Layanan grooming berhasil dihapus"
     }
 
 
 # ======================================================
-# TRANSAKSI
+# ORDERS
 # ======================================================
 
 @app.post(
-    "/transaksi",
-    response_model=schemas.TransaksiOut
+    "/orders",
+    response_model=schemas.OrderOut
 )
-def create_transaksi(
-    transaksi: schemas.TransaksiCreate,
+def create_order(
+    order: schemas.OrderCreate,
     db: Session = Depends(get_db)
 ):
-
-    db_transaksi = crud.create_transaksi(
+    return crud.create_order(
         db,
-        transaksi
+        order
     )
-
-    if not db_transaksi:
-        raise HTTPException(
-            status_code=400,
-            detail="Transaksi gagal"
-        )
-
-    return db_transaksi
 
 
 @app.get(
-    "/transaksi",
-    response_model=List[schemas.TransaksiOut]
+    "/orders",
+    response_model=List[schemas.OrderOut]
 )
-def get_transaksi(
+def get_orders(
     skip: int = 0,
     limit: int = 100,
-    user_id: Optional[int] = None,
-    status_pembayaran: Optional[str] = None,
-    jenis_transaksi: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    return crud.get_all_transaksi(
+    return crud.get_all_orders(
         db,
         skip,
-        limit,
-        user_id,
-        status_pembayaran,
-        jenis_transaksi
+        limit
     )
 
 
 @app.get(
-    "/transaksi/{transaksi_id}",
-    response_model=schemas.TransaksiOut
+    "/orders/{order_id}",
+    response_model=schemas.OrderOut
 )
-def get_transaksi_by_id(
-    transaksi_id: int,
+def get_order_by_id(
+    order_id: int,
     db: Session = Depends(get_db)
 ):
 
-    transaksi = crud.get_transaksi(
+    order = crud.get_order(
         db,
-        transaksi_id
+        order_id
     )
 
-    if not transaksi:
+    if not order:
         raise HTTPException(
             status_code=404,
-            detail="Transaksi tidak ditemukan"
+            detail="Order tidak ditemukan"
         )
 
-    return transaksi
+    return order
 
 
 @app.patch(
-    "/transaksi/{transaksi_id}/status",
-    response_model=schemas.TransaksiOut
+    "/orders/{order_id}/status",
+    response_model=schemas.OrderOut
 )
-def update_status_transaksi(
-    transaksi_id: int,
-    status_pembayaran: str,
+def update_order_status(
+    order_id: int,
+    status: str,
     db: Session = Depends(get_db)
 ):
 
-    transaksi = crud.update_status_transaksi(
+    updated = crud.update_order_status(
         db,
-        transaksi_id,
-        status_pembayaran
+        order_id,
+        status
     )
 
-    if not transaksi:
+    if not updated:
         raise HTTPException(
             status_code=404,
-            detail="Transaksi tidak ditemukan"
+            detail="Order tidak ditemukan"
         )
 
-    return transaksi
+    return updated
 
 
-@app.delete("/transaksi/{transaksi_id}")
-def delete_transaksi(
-    transaksi_id: int,
+# ======================================================
+# ORDER PRODUCTS
+# ======================================================
+
+@app.post(
+    "/order-products",
+    response_model=schemas.OrderProductOut
+)
+def create_order_product(
+    item: schemas.OrderProductCreate,
     db: Session = Depends(get_db)
 ):
 
-    deleted = crud.delete_transaksi(
+    db_item = crud.create_order_product(
         db,
-        transaksi_id
+        item
     )
 
-    if not deleted:
+    if not db_item:
         raise HTTPException(
-            status_code=404,
-            detail="Transaksi tidak ditemukan"
+            status_code=400,
+            detail="Produk gagal ditambahkan ke order"
         )
 
-    return {
-        "message": "Transaksi berhasil dihapus"
-    }
+    return db_item
+
+
+# ======================================================
+# ANIMAL ADOPTIONS
+# ======================================================
+
+@app.post(
+    "/animal-adoptions",
+    response_model=schemas.AnimalAdoptionOut
+)
+def create_animal_adoption(
+    adoption: schemas.AnimalAdoptionCreate,
+    db: Session = Depends(get_db)
+):
+
+    db_adoption = crud.create_animal_adoption(
+        db,
+        adoption
+    )
+
+    if not db_adoption:
+        raise HTTPException(
+            status_code=400,
+            detail="Adopsi gagal"
+        )
+
+    return db_adoption
+
+
+# ======================================================
+# GROOMING BOOKINGS
+# ======================================================
+
+@app.post(
+    "/grooming-bookings",
+    response_model=schemas.GroomingBookingOut
+)
+def create_grooming_booking(
+    booking: schemas.GroomingBookingCreate,
+    db: Session = Depends(get_db)
+):
+
+    db_booking = crud.create_grooming_booking(
+        db,
+        booking
+    )
+
+    if not db_booking:
+        raise HTTPException(
+            status_code=400,
+            detail="Booking grooming gagal"
+        )
+
+    return db_booking
+
+
+@app.patch(
+    "/grooming-bookings/{booking_id}/status",
+    response_model=schemas.GroomingBookingOut
+)
+def update_grooming_booking_status(
+    booking_id: int,
+    status: str,
+    db: Session = Depends(get_db)
+):
+
+    updated = crud.update_grooming_booking_status(
+        db,
+        booking_id,
+        status
+    )
+
+    if not updated:
+        raise HTTPException(
+            status_code=404,
+            detail="Booking tidak ditemukan"
+        )
+
+    return updated
