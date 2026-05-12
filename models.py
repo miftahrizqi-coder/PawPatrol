@@ -4,80 +4,105 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Date,
     ForeignKey,
-    Enum
+    Enum,
+    DateTime,
+    Text,
+    Date,
+    Time
 )
 
 from sqlalchemy.orm import relationship
 from database import Base
+
+from datetime import datetime
 import enum
 
 
 # ======================================================
-# ENUM STATUS HEWAN
+# ENUM STATUS ADOPSI
 # ======================================================
-class StatusHewan(str, enum.Enum):
-    tersedia = 'tersedia'
-    diadopsi = 'diadopsi'
+class StatusAdopsi(str, enum.Enum):
+    tersedia = "tersedia"
+    pending = "pending"
+    diadopsi = "diadopsi"
 
 
 # ======================================================
-# ENUM STATUS PEMBAYARAN
+# ENUM STATUS ORDER
 # ======================================================
-class StatusPembayaran(str, enum.Enum):
-    pending = 'pending'
-    lunas = 'lunas'
-    gagal = 'gagal'
+class StatusOrder(str, enum.Enum):
+    pending = "pending"
+    dibayar = "dibayar"
+    selesai = "selesai"
+    dibatalkan = "dibatalkan"
 
 
 # ======================================================
-# ENUM JENIS TRANSAKSI
+# ENUM STATUS BOOKING GROOMING
 # ======================================================
-class JenisTransaksi(str, enum.Enum):
-    produk = 'produk'
-    grooming = 'grooming'
-    adopsi = 'adopsi'
+class StatusBooking(str, enum.Enum):
+    menunggu = "menunggu"
+    diproses = "diproses"
+    selesai = "selesai"
+    dibatalkan = "dibatalkan"
 
 
 # ======================================================
 # TABEL USERS
 # ======================================================
 class Users(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
 
     nama = Column(String(100), nullable=False)
+
     email = Column(String(100), unique=True, nullable=False)
-    alamat = Column(String(255), nullable=True)
+
+    password_hash = Column(String(255), nullable=False)
+
+    alamat = Column(Text, nullable=True)
+
+    no_hp = Column(String(20), nullable=True)
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
 
     # ==================================================
     # RELATIONSHIP
     # ==================================================
-    hewan = relationship(
-        'Hewan',
-        back_populates='user',
-        lazy='selectin'
+    animals = relationship(
+        "Animals",
+        back_populates="adopter",
+        lazy="selectin"
     )
 
-    transaksi = relationship(
-        'Transaksi',
-        back_populates='user',
-        lazy='selectin'
+    orders = relationship(
+        "Orders",
+        back_populates="user",
+        lazy="selectin"
+    )
+
+    grooming_bookings = relationship(
+        "GroomingBookings",
+        back_populates="user",
+        lazy="selectin"
     )
 
 
 # ======================================================
-# TABEL KATEGORI HEWAN
+# TABEL CATEGORIES
 # ======================================================
-class KategoriHewan(Base):
-    __tablename__ = 'kategori_hewan'
+class Categories(Base):
+    __tablename__ = "categories"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
 
     nama_kategori = Column(
-        String(50),
+        String(100),
         unique=True,
         nullable=False
     )
@@ -85,187 +110,325 @@ class KategoriHewan(Base):
     # ==================================================
     # RELATIONSHIP
     # ==================================================
-    hewan = relationship(
-        'Hewan',
-        back_populates='kategori',
-        lazy='selectin'
+    animals = relationship(
+        "Animals",
+        back_populates="category",
+        lazy="selectin"
     )
 
 
 # ======================================================
-# TABEL HEWAN
+# TABEL ANIMALS
 # ======================================================
-class Hewan(Base):
-    __tablename__ = 'hewan'
+class Animals(Base):
+    __tablename__ = "animals"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
 
     nama_hewan = Column(String(100), nullable=False)
 
     umur = Column(Integer, nullable=False)
 
+    jenis_kelamin = Column(String(20), nullable=True)
+
+    deskripsi = Column(Text, nullable=True)
+
     foto = Column(String(255), nullable=True)
 
-    status = Column(
-        Enum(StatusHewan),
-        default=StatusHewan.tersedia
+    status_adopsi = Column(
+        Enum(StatusAdopsi),
+        default=StatusAdopsi.tersedia
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
     )
 
     # ==================================================
     # FOREIGN KEY
     # ==================================================
-    id_kategori = Column(
+    kategori_id = Column(
         Integer,
-        ForeignKey('kategori_hewan.id')
+        ForeignKey("categories.id")
     )
 
-    # user yang mengadopsi
-    id_user = Column(
+    adopter_id = Column(
         Integer,
-        ForeignKey('users.id'),
+        ForeignKey("users.id"),
         nullable=True
     )
 
     # ==================================================
     # RELATIONSHIP
     # ==================================================
-    kategori = relationship(
-        'KategoriHewan',
-        back_populates='hewan'
+    category = relationship(
+        "Categories",
+        back_populates="animals"
     )
 
-    user = relationship(
-        'Users',
-        back_populates='hewan'
+    adopter = relationship(
+        "Users",
+        back_populates="animals"
     )
 
-    transaksi = relationship(
-        'Transaksi',
-        back_populates='hewan',
-        lazy='selectin'
+    adoptions = relationship(
+        "AnimalAdoptions",
+        back_populates="animal",
+        lazy="selectin"
     )
 
 
 # ======================================================
-# TABEL PRODUK
+# TABEL PRODUCTS
 # ======================================================
-class Produk(Base):
-    __tablename__ = 'produk'
+class Products(Base):
+    __tablename__ = "products"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
 
     nama_produk = Column(String(100), nullable=False)
+
+    deskripsi = Column(Text, nullable=True)
 
     harga = Column(Integer, nullable=False)
 
     stok = Column(Integer, default=0)
 
-    gambar = Column(String(255), nullable=True)
+    foto = Column(String(255), nullable=True)
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
 
     # ==================================================
     # RELATIONSHIP
     # ==================================================
-    transaksi = relationship(
-        'Transaksi',
-        back_populates='produk',
-        lazy='selectin'
+    order_products = relationship(
+        "OrderProducts",
+        back_populates="product",
+        lazy="selectin"
     )
 
 
 # ======================================================
-# TABEL GROOMING
+# TABEL GROOMING SERVICES
 # ======================================================
-class Grooming(Base):
-    __tablename__ = 'grooming'
+class GroomingServices(Base):
+    __tablename__ = "grooming_services"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
 
     nama_layanan = Column(String(100), nullable=False)
 
     harga = Column(Integer, nullable=False)
 
-    deskripsi = Column(String(255), nullable=True)
+    deskripsi = Column(Text, nullable=True)
 
     # ==================================================
     # RELATIONSHIP
     # ==================================================
-    transaksi = relationship(
-        'Transaksi',
-        back_populates='grooming',
-        lazy='selectin'
+    bookings = relationship(
+        "GroomingBookings",
+        back_populates="grooming_service",
+        lazy="selectin"
     )
 
 
 # ======================================================
-# TABEL TRANSAKSI
+# TABEL ORDERS
 # ======================================================
-class Transaksi(Base):
-    __tablename__ = 'transaksi'
+class Orders(Base):
+    __tablename__ = "orders"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
+
+    total_harga = Column(Integer, nullable=False)
+
+    status = Column(
+        Enum(StatusOrder),
+        default=StatusOrder.pending
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
 
     # ==================================================
     # FOREIGN KEY
     # ==================================================
-    id_user = Column(
+    user_id = Column(
         Integer,
-        ForeignKey('users.id')
-    )
-
-    id_produk = Column(
-        Integer,
-        ForeignKey('produk.id'),
-        nullable=True
-    )
-
-    id_grooming = Column(
-        Integer,
-        ForeignKey('grooming.id'),
-        nullable=True
-    )
-
-    id_hewan = Column(
-        Integer,
-        ForeignKey('hewan.id'),
-        nullable=True
-    )
-
-    # ==================================================
-    # DATA TRANSAKSI
-    # ==================================================
-    tanggal = Column(Date, nullable=False)
-
-    total = Column(Integer, nullable=False)
-
-    jenis_transaksi = Column(
-        Enum(JenisTransaksi),
-        nullable=False
-    )
-
-    status_pembayaran = Column(
-        Enum(StatusPembayaran),
-        default=StatusPembayaran.pending
+        ForeignKey("users.id")
     )
 
     # ==================================================
     # RELATIONSHIP
     # ==================================================
     user = relationship(
-        'Users',
-        back_populates='transaksi'
+        "Users",
+        back_populates="orders"
     )
 
-    produk = relationship(
-        'Produk',
-        back_populates='transaksi'
+    order_products = relationship(
+        "OrderProducts",
+        back_populates="order",
+        lazy="selectin"
     )
 
-    grooming = relationship(
-        'Grooming',
-        back_populates='transaksi'
+    animal_adoptions = relationship(
+        "AnimalAdoptions",
+        back_populates="order",
+        lazy="selectin"
     )
 
-    hewan = relationship(
-        'Hewan',
-        back_populates='transaksi'
+    grooming_bookings = relationship(
+        "GroomingBookings",
+        back_populates="order",
+        lazy="selectin"
+    )
+
+
+# ======================================================
+# TABEL ORDER PRODUCTS
+# ======================================================
+class OrderProducts(Base):
+    __tablename__ = "order_products"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    quantity = Column(Integer, nullable=False)
+
+    harga = Column(Integer, nullable=False)
+
+    # ==================================================
+    # FOREIGN KEY
+    # ==================================================
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id")
+    )
+
+    product_id = Column(
+        Integer,
+        ForeignKey("products.id")
+    )
+
+    # ==================================================
+    # RELATIONSHIP
+    # ==================================================
+    order = relationship(
+        "Orders",
+        back_populates="order_products"
+    )
+
+    product = relationship(
+        "Products",
+        back_populates="order_products"
+    )
+
+
+# ======================================================
+# TABEL ANIMAL ADOPTIONS
+# ======================================================
+class AnimalAdoptions(Base):
+    __tablename__ = "animal_adoptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    biaya_adopsi = Column(Integer, nullable=False)
+
+    status = Column(
+        Enum(StatusAdopsi),
+        default=StatusAdopsi.pending
+    )
+
+    # ==================================================
+    # FOREIGN KEY
+    # ==================================================
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id")
+    )
+
+    animal_id = Column(
+        Integer,
+        ForeignKey("animals.id")
+    )
+
+    # ==================================================
+    # RELATIONSHIP
+    # ==================================================
+    order = relationship(
+        "Orders",
+        back_populates="animal_adoptions"
+    )
+
+    animal = relationship(
+        "Animals",
+        back_populates="adoptions"
+    )
+
+
+# ======================================================
+# TABEL GROOMING BOOKINGS
+# ======================================================
+class GroomingBookings(Base):
+    __tablename__ = "grooming_bookings"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    booking_date = Column(
+        Date,
+        nullable=False
+    )
+
+    booking_time = Column(
+        Time,
+        nullable=False
+    )
+
+    catatan = Column(Text, nullable=True)
+
+    status = Column(
+        Enum(StatusBooking),
+        default=StatusBooking.menunggu
+    )
+
+    # ==================================================
+    # FOREIGN KEY
+    # ==================================================
+    order_id = Column(
+        Integer,
+        ForeignKey("orders.id")
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id")
+    )
+
+    grooming_service_id = Column(
+        Integer,
+        ForeignKey("grooming_services.id")
+    )
+
+    # ==================================================
+    # RELATIONSHIP
+    # ==================================================
+    order = relationship(
+        "Orders",
+        back_populates="grooming_bookings"
+    )
+
+    user = relationship(
+        "Users",
+        back_populates="grooming_bookings"
+    )
+
+    grooming_service = relationship(
+        "GroomingServices",
+        back_populates="bookings"
     )
