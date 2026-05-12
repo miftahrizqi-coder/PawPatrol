@@ -2,13 +2,14 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional
+
 import models
 import schemas
 
 
-# ==========================================
+# ======================================================
 # USERS
-# ==========================================
+# ======================================================
 
 def get_user(db: Session, user_id: int):
     return db.query(models.Users).filter(
@@ -35,9 +36,9 @@ def get_all_users(
 
 def create_user(
     db: Session,
-    user: schemas.UsersCreate
+    user: schemas.UserCreate
 ):
-    db_user = models.Users(**user.dict())
+    db_user = models.Users(**user.model_dump())
 
     db.add(db_user)
     db.commit()
@@ -49,36 +50,41 @@ def create_user(
 def update_user(
     db: Session,
     user_id: int,
-    user: schemas.UsersCreate
+    user: schemas.UserCreate
 ):
     db_user = get_user(db, user_id)
 
-    if db_user:
-        db_user.nama = user.nama
-        db_user.email = user.email
-        db_user.password = user.password
-        db_user.alamat = user.alamat
+    if not db_user:
+        return None
 
-        db.commit()
-        db.refresh(db_user)
+    db_user.nama = user.nama
+    db_user.email = user.email
+    db_user.alamat = user.alamat
+
+    db.commit()
+    db.refresh(db_user)
 
     return db_user
 
 
-def delete_user(db: Session, user_id: int):
+def delete_user(
+    db: Session,
+    user_id: int
+):
     db_user = get_user(db, user_id)
 
-    if db_user:
-        db.delete(db_user)
-        db.commit()
-        return True
+    if not db_user:
+        return False
 
-    return False
+    db.delete(db_user)
+    db.commit()
+
+    return True
 
 
-# ==========================================
+# ======================================================
 # KATEGORI HEWAN
-# ==========================================
+# ======================================================
 
 def get_kategori_hewan(
     db: Session,
@@ -104,7 +110,9 @@ def create_kategori_hewan(
     db: Session,
     kategori: schemas.KategoriHewanCreate
 ):
-    db_kategori = models.KategoriHewan(**kategori.dict())
+    db_kategori = models.KategoriHewan(
+        **kategori.model_dump()
+    )
 
     db.add(db_kategori)
     db.commit()
@@ -118,13 +126,18 @@ def update_kategori_hewan(
     kategori_id: int,
     kategori: schemas.KategoriHewanCreate
 ):
-    db_kategori = get_kategori_hewan(db, kategori_id)
+    db_kategori = get_kategori_hewan(
+        db,
+        kategori_id
+    )
 
-    if db_kategori:
-        db_kategori.nama_kategori = kategori.nama_kategori
+    if not db_kategori:
+        return None
 
-        db.commit()
-        db.refresh(db_kategori)
+    db_kategori.nama_kategori = kategori.nama_kategori
+
+    db.commit()
+    db.refresh(db_kategori)
 
     return db_kategori
 
@@ -133,29 +146,30 @@ def delete_kategori_hewan(
     db: Session,
     kategori_id: int
 ):
-    db_kategori = get_kategori_hewan(db, kategori_id)
+    db_kategori = get_kategori_hewan(
+        db,
+        kategori_id
+    )
 
-    if db_kategori:
+    if not db_kategori:
+        return False
 
-        # cek apakah kategori dipakai hewan
-        cek_hewan = db.query(models.Hewan).filter(
-            models.Hewan.id_kategori == kategori_id
-        ).count()
+    cek_hewan = db.query(models.Hewan).filter(
+        models.Hewan.id_kategori == kategori_id
+    ).count()
 
-        if cek_hewan > 0:
-            return False
+    if cek_hewan > 0:
+        return False
 
-        db.delete(db_kategori)
-        db.commit()
+    db.delete(db_kategori)
+    db.commit()
 
-        return True
-
-    return False
+    return True
 
 
-# ==========================================
+# ======================================================
 # HEWAN
-# ==========================================
+# ======================================================
 
 def get_hewan(
     db: Session,
@@ -193,7 +207,9 @@ def create_hewan(
     db: Session,
     hewan: schemas.HewanCreate
 ):
-    db_hewan = models.Hewan(**hewan.dict())
+    db_hewan = models.Hewan(
+        **hewan.model_dump()
+    )
 
     db.add(db_hewan)
     db.commit()
@@ -205,20 +221,22 @@ def create_hewan(
 def update_hewan(
     db: Session,
     hewan_id: int,
-    hewan: schemas.HewanCreate
+    hewan: schemas.HewanUpdate
 ):
     db_hewan = get_hewan(db, hewan_id)
 
-    if db_hewan:
-        db_hewan.nama_hewan = hewan.nama_hewan
-        db_hewan.umur = hewan.umur
-        db_hewan.foto = hewan.foto
-        db_hewan.status = hewan.status
-        db_hewan.id_kategori = hewan.id_kategori
-        db_hewan.id_user = hewan.id_user
+    if not db_hewan:
+        return None
 
-        db.commit()
-        db.refresh(db_hewan)
+    update_data = hewan.model_dump(
+        exclude_unset=True
+    )
+
+    for key, value in update_data.items():
+        setattr(db_hewan, key, value)
+
+    db.commit()
+    db.refresh(db_hewan)
 
     return db_hewan
 
@@ -229,18 +247,18 @@ def delete_hewan(
 ):
     db_hewan = get_hewan(db, hewan_id)
 
-    if db_hewan:
-        db.delete(db_hewan)
-        db.commit()
+    if not db_hewan:
+        return False
 
-        return True
+    db.delete(db_hewan)
+    db.commit()
 
-    return False
+    return True
 
 
-# ==========================================
+# ======================================================
 # PRODUK
-# ==========================================
+# ======================================================
 
 def get_produk(
     db: Session,
@@ -266,7 +284,9 @@ def create_produk(
     db: Session,
     produk: schemas.ProdukCreate
 ):
-    db_produk = models.Produk(**produk.dict())
+    db_produk = models.Produk(
+        **produk.model_dump()
+    )
 
     db.add(db_produk)
     db.commit()
@@ -278,18 +298,22 @@ def create_produk(
 def update_produk(
     db: Session,
     produk_id: int,
-    produk: schemas.ProdukCreate
+    produk: schemas.ProdukUpdate
 ):
     db_produk = get_produk(db, produk_id)
 
-    if db_produk:
-        db_produk.nama_produk = produk.nama_produk
-        db_produk.harga = produk.harga
-        db_produk.stok = produk.stok
-        db_produk.gambar = produk.gambar
+    if not db_produk:
+        return None
 
-        db.commit()
-        db.refresh(db_produk)
+    update_data = produk.model_dump(
+        exclude_unset=True
+    )
+
+    for key, value in update_data.items():
+        setattr(db_produk, key, value)
+
+    db.commit()
+    db.refresh(db_produk)
 
     return db_produk
 
@@ -300,18 +324,18 @@ def delete_produk(
 ):
     db_produk = get_produk(db, produk_id)
 
-    if db_produk:
-        db.delete(db_produk)
-        db.commit()
+    if not db_produk:
+        return False
 
-        return True
+    db.delete(db_produk)
+    db.commit()
 
-    return False
+    return True
 
 
-# ==========================================
+# ======================================================
 # GROOMING
-# ==========================================
+# ======================================================
 
 def get_grooming(
     db: Session,
@@ -337,7 +361,9 @@ def create_grooming(
     db: Session,
     grooming: schemas.GroomingCreate
 ):
-    db_grooming = models.Grooming(**grooming.dict())
+    db_grooming = models.Grooming(
+        **grooming.model_dump()
+    )
 
     db.add(db_grooming)
     db.commit()
@@ -349,17 +375,25 @@ def create_grooming(
 def update_grooming(
     db: Session,
     grooming_id: int,
-    grooming: schemas.GroomingCreate
+    grooming: schemas.GroomingUpdate
 ):
-    db_grooming = get_grooming(db, grooming_id)
+    db_grooming = get_grooming(
+        db,
+        grooming_id
+    )
 
-    if db_grooming:
-        db_grooming.nama_layanan = grooming.nama_layanan
-        db_grooming.harga = grooming.harga
-        db_grooming.deskripsi = grooming.deskripsi
+    if not db_grooming:
+        return None
 
-        db.commit()
-        db.refresh(db_grooming)
+    update_data = grooming.model_dump(
+        exclude_unset=True
+    )
+
+    for key, value in update_data.items():
+        setattr(db_grooming, key, value)
+
+    db.commit()
+    db.refresh(db_grooming)
 
     return db_grooming
 
@@ -368,20 +402,23 @@ def delete_grooming(
     db: Session,
     grooming_id: int
 ):
-    db_grooming = get_grooming(db, grooming_id)
+    db_grooming = get_grooming(
+        db,
+        grooming_id
+    )
 
-    if db_grooming:
-        db.delete(db_grooming)
-        db.commit()
+    if not db_grooming:
+        return False
 
-        return True
+    db.delete(db_grooming)
+    db.commit()
 
-    return False
+    return True
 
 
-# ==========================================
+# ======================================================
 # TRANSAKSI
-# ==========================================
+# ======================================================
 
 def get_transaksi(
     db: Session,
@@ -397,7 +434,8 @@ def get_all_transaksi(
     skip: int = 0,
     limit: int = 100,
     user_id: Optional[int] = None,
-    status_pembayaran: Optional[str] = None
+    status_pembayaran: Optional[str] = None,
+    jenis_transaksi: Optional[str] = None
 ):
 
     query = db.query(models.Transaksi)
@@ -412,6 +450,11 @@ def get_all_transaksi(
             models.Transaksi.status_pembayaran == status_pembayaran
         )
 
+    if jenis_transaksi:
+        query = query.filter(
+            models.Transaksi.jenis_transaksi == jenis_transaksi
+        )
+
     return query.offset(skip).limit(limit).all()
 
 
@@ -422,10 +465,10 @@ def create_transaksi(
 
     total_harga = 0
 
-    # ======================
-    # CEK PRODUK
-    # ======================
-    if transaksi.id_produk:
+    # ==================================================
+    # TRANSAKSI PRODUK
+    # ==================================================
+    if transaksi.jenis_transaksi == "produk":
 
         produk = db.query(models.Produk).filter(
             models.Produk.id == transaksi.id_produk
@@ -437,15 +480,15 @@ def create_transaksi(
         if produk.stok <= 0:
             return None
 
-        total_harga += produk.harga
+        total_harga = produk.harga
 
         # kurangi stok
         produk.stok -= 1
 
-    # ======================
-    # CEK GROOMING
-    # ======================
-    if transaksi.id_grooming:
+    # ==================================================
+    # TRANSAKSI GROOMING
+    # ==================================================
+    elif transaksi.jenis_transaksi == "grooming":
 
         grooming = db.query(models.Grooming).filter(
             models.Grooming.id == transaksi.id_grooming
@@ -454,14 +497,44 @@ def create_transaksi(
         if not grooming:
             return None
 
-        total_harga += grooming.harga
+        total_harga = grooming.harga
 
+    # ==================================================
+    # TRANSAKSI ADOPSI
+    # ==================================================
+    elif transaksi.jenis_transaksi == "adopsi":
+
+        hewan = db.query(models.Hewan).filter(
+            models.Hewan.id == transaksi.id_hewan
+        ).first()
+
+        if not hewan:
+            return None
+
+        if hewan.status == "diadopsi":
+            return None
+
+        # contoh biaya adopsi
+        total_harga = transaksi.total
+
+        # update status hewan
+        hewan.status = "diadopsi"
+        hewan.id_user = transaksi.id_user
+
+    else:
+        return None
+
+    # ==================================================
+    # CREATE TRANSAKSI
+    # ==================================================
     db_transaksi = models.Transaksi(
         id_user=transaksi.id_user,
         id_produk=transaksi.id_produk,
         id_grooming=transaksi.id_grooming,
+        id_hewan=transaksi.id_hewan,
         tanggal=transaksi.tanggal,
         total=total_harga,
+        jenis_transaksi=transaksi.jenis_transaksi,
         status_pembayaran=transaksi.status_pembayaran
     )
 
@@ -477,13 +550,18 @@ def update_status_transaksi(
     transaksi_id: int,
     status_pembayaran: str
 ):
-    db_transaksi = get_transaksi(db, transaksi_id)
+    db_transaksi = get_transaksi(
+        db,
+        transaksi_id
+    )
 
-    if db_transaksi:
-        db_transaksi.status_pembayaran = status_pembayaran
+    if not db_transaksi:
+        return None
 
-        db.commit()
-        db.refresh(db_transaksi)
+    db_transaksi.status_pembayaran = status_pembayaran
+
+    db.commit()
+    db.refresh(db_transaksi)
 
     return db_transaksi
 
@@ -492,12 +570,15 @@ def delete_transaksi(
     db: Session,
     transaksi_id: int
 ):
-    db_transaksi = get_transaksi(db, transaksi_id)
+    db_transaksi = get_transaksi(
+        db,
+        transaksi_id
+    )
 
-    if db_transaksi:
-        db.delete(db_transaksi)
-        db.commit()
+    if not db_transaksi:
+        return False
 
-        return True
+    db.delete(db_transaksi)
+    db.commit()
 
-    return False
+    return True
