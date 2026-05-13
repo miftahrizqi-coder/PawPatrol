@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional
+from models import StatusOrder
 
 import models
 import schemas
@@ -30,13 +31,17 @@ def get_all_users(db: Session, skip=0, limit=100):
         .all()
 
 
-def create_user(db: Session, user: schemas.UserCreate):
+def create_user(
+    db: Session,
+    user: schemas.UserCreate
+):
+
     db_user = models.Users(
-        nama=user.nama,
-        email=user.email,
-        password_hash=user.password,   # nanti diganti bcrypt
-        alamat=user.alamat,
-    )
+    nama=user.nama,
+    email=user.email,
+    password_hash=user.password,
+    alamat=user.alamat,
+)
 
     db.add(db_user)
     db.commit()
@@ -73,7 +78,23 @@ def delete_user(db: Session, user_id: int):
 
     return True
 
+def login_user(
+    db: Session,
+    email: str,
+    password: str
+):
 
+    user = db.query(models.Users).filter(
+        models.Users.email == email
+    ).first()
+
+    if not user:
+        return None
+
+    if password != user.password_hash:
+        return None
+
+    return user
 # ======================================================
 # CATEGORIES
 # ======================================================
@@ -516,3 +537,342 @@ def update_grooming_booking_status(
     db.refresh(booking)
 
     return booking
+
+# ======================================================
+# CART
+# ======================================================
+
+def get_cart_by_user(
+    db: Session,
+    user_id: int
+):
+    return db.query(models.Orders).filter(
+        models.Orders.user_id == user_id,
+        models.Orders.status == StatusOrder.cart
+    ).first()
+
+def add_to_cart(
+    db: Session,
+    user_id: int,
+    product_id: int,
+    quantity: int
+):
+
+    product = get_product(
+        db,
+        product_id
+    )
+
+    if not product:
+        return None
+
+    if product.stok < quantity:
+        return "stok_habis"
+
+    # =========================
+    # CEK CART USER
+    # =========================
+    cart = get_cart_by_user(
+        db,
+        user_id
+    )
+
+    # =========================
+    # BUAT CART BARU
+    # =========================
+    if not cart:
+
+        cart = models.Orders(
+            user_id=user_id,
+            total_harga=0,
+            status="cart"
+        )
+
+        db.add(cart)
+        db.commit()
+        db.refresh(cart)
+
+    # =========================
+    # CEK PRODUK SUDAH ADA?
+    # =========================
+    existing_item = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id,
+        models.OrderProducts.product_id == product_id
+    ).first()
+
+    if existing_item:
+
+        existing_item.quantity += quantity
+
+        existing_item.harga = (
+            existing_item.quantity *
+            product.harga
+        )
+
+    else:
+
+        cart_item = models.OrderProducts(
+            order_id=cart.id,
+            product_id=product_id,
+            quantity=quantity,
+            harga=product.harga * quantity
+        )
+
+        db.add(cart_item)
+
+    # =========================
+    # SIMPAN DULU ITEM
+    # =========================
+    db.commit()
+
+    # =========================
+    # HITUNG ULANG TOTAL
+    # =========================
+    items = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id
+    ).all()
+
+    total_harga = sum(
+        item.harga for item in items
+    )
+
+    cart.total_harga = total_harga
+
+    db.commit()
+    db.refresh(cart)
+
+    return cart
+
+def get_cart_items(
+    db: Session,
+    user_id: int
+):
+
+    cart = get_cart_by_user(
+        db,
+        user_id
+    )
+
+    if not cart:
+        return []
+
+    return db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id
+    ).all()
+
+# ======================================================
+# REMOVE ITEM FROM CART
+# ======================================================
+
+def remove_from_cart(
+    db: Session,
+    user_id: int,
+    product_id: int
+):
+
+    # =========================
+    # CEK CART USER
+    # =========================
+    cart = get_cart_by_user(
+        db,
+        user_id
+    )
+
+    if not cart:
+        return None
+
+    # =========================
+    # CEK ITEM DI CART
+    # =========================
+    cart_item = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id,
+        models.OrderProducts.product_id == product_id
+    ).first()
+
+    if not cart_item:
+        return None
+
+    # =========================
+    # HAPUS ITEM
+    # =========================
+    db.delete(cart_item)
+    db.commit()
+
+    # =========================
+    # HITUNG ULANG TOTAL
+    # =========================
+    items = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id
+    ).all()
+
+    total_harga = sum(
+        item.harga for item in items
+    )
+
+    cart.total_harga = total_harga
+
+    db.commit()
+    db.refresh(cart)
+
+    return cart
+
+# ======================================================
+# UPDATE CART ITEM QUANTITY
+# ======================================================
+
+def update_cart_item_quantity(
+    db: Session,
+    user_id: int,
+    product_id: int,
+    quantity: int
+):
+
+    # =========================
+    # VALIDASI QUANTITY
+    # =========================
+    if quantity <= 0:
+        return "invalid_quantity"
+
+    # =========================
+    # CEK CART USER
+    # =========================
+    cart = get_cart_by_user(
+        db,
+        user_id
+    )
+
+    if not cart:
+        return None
+
+    # =========================
+    # CEK PRODUK
+    # =========================
+    product = get_product(
+        db,
+        product_id
+    )
+
+    if not product:
+        return None
+
+    # =========================
+    # CEK STOK
+    # =========================
+    if product.stok < quantity:
+        return "stok_habis"
+
+    # =========================
+    # CEK ITEM DI CART
+    # =========================
+    cart_item = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id,
+        models.OrderProducts.product_id == product_id
+    ).first()
+
+    if not cart_item:
+        return None
+
+    # =========================
+    # UPDATE QUANTITY
+    # =========================
+    cart_item.quantity = quantity
+
+    cart_item.harga = (
+        quantity * product.harga
+    )
+
+    db.commit()
+
+    # =========================
+    # HITUNG ULANG TOTAL CART
+    # =========================
+    items = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id
+    ).all()
+
+    total_harga = sum(
+        item.harga for item in items
+    )
+
+    cart.total_harga = total_harga
+
+    db.commit()
+    db.refresh(cart)
+
+    return cart
+
+def checkout_cart(
+    db: Session,
+    user_id: int
+):
+
+    cart = get_cart_by_user(
+        db,
+        user_id
+    )
+
+    if not cart:
+        return None
+
+    # =====================================
+    # AMBIL SEMUA ITEM DALAM CART
+    # =====================================
+    cart_items = db.query(
+        models.OrderProducts
+    ).filter(
+        models.OrderProducts.order_id == cart.id
+    ).all()
+
+    # =====================================
+    # VALIDASI STOK
+    # =====================================
+    for item in cart_items:
+
+        product = db.query(
+            models.Products
+        ).filter(
+            models.Products.id == item.product_id
+        ).first()
+
+        if not product:
+            return "produk_tidak_ditemukan"
+
+        if product.stok < item.quantity:
+            return "stok_tidak_cukup"
+
+    # =====================================
+    # KURANGI STOK
+    # =====================================
+    for item in cart_items:
+
+        product = db.query(
+            models.Products
+        ).filter(
+            models.Products.id == item.product_id
+        ).first()
+
+        product.stok -= item.quantity
+
+    # =====================================
+    # UPDATE STATUS ORDER
+    # =====================================
+    cart.status = models.StatusOrder.paid
+
+    db.commit()
+    db.refresh(cart)
+
+    return cart

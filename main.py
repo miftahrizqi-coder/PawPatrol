@@ -3,6 +3,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from auth import create_access_token
 
 import models
 import schemas
@@ -775,3 +776,200 @@ def update_grooming_booking_status(
         )
 
     return updated
+
+# ======================================================
+# AUTH
+# ======================================================
+
+@app.post(
+    "/auth/register",
+    response_model=schemas.UserOut
+)
+def register(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db)
+):
+
+    cek_email = crud.get_user_by_email(
+        db,
+        user.email
+    )
+
+    if cek_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email sudah digunakan"
+        )
+
+    return crud.create_user(
+        db,
+        user
+    )
+
+
+@app.post(
+    "/auth/login",
+    response_model=schemas.LoginResponse
+)
+def login(
+    request: schemas.LoginRequest,
+    db: Session = Depends(get_db)
+):
+
+    user = crud.login_user(
+        db,
+        request.email,
+        request.password
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Email atau password salah"
+        )
+
+    token = create_access_token({
+        "sub": user.email
+    })
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+# ======================================================
+# CART ITEMS
+# ======================================================
+@app.post("/cart/add")
+def add_to_cart(
+    request: schemas.AddToCartRequest,
+    db: Session = Depends(get_db)
+):
+
+    result = crud.add_to_cart(
+        db,
+        request.user_id,
+        request.product_id,
+        request.quantity
+    )
+
+    if result == "stok_habis":
+        raise HTTPException(
+            status_code=400,
+            detail="Stok produk tidak cukup"
+        )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Produk tidak ditemukan"
+        )
+
+    return {
+        "message": "Produk berhasil ditambahkan ke cart",
+        "cart_id": result.id
+    }
+
+@app.get("/cart/{user_id}")
+def get_cart(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+
+    return crud.get_cart_items(
+        db,
+        user_id
+    )
+
+# ======================================================
+# REMOVE FROM CART
+# ======================================================
+
+@app.delete("/cart/remove")
+def remove_item_from_cart(
+    user_id: int,
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+
+    result = crud.remove_from_cart(
+        db,
+        user_id,
+        product_id
+    )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Item cart tidak ditemukan"
+        )
+
+    return {
+        "message": "Item berhasil dihapus dari cart",
+        "cart_total": result.total_harga
+    }
+
+# ======================================================
+# UPDATE CART ITEM QUANTITY
+# ======================================================
+
+@app.put("/cart/update")
+def update_cart_quantity(
+    user_id: int,
+    product_id: int,
+    quantity: int,
+    db: Session = Depends(get_db)
+):
+
+    result = crud.update_cart_item_quantity(
+        db,
+        user_id,
+        product_id,
+        quantity
+    )
+
+    if result == "invalid_quantity":
+        raise HTTPException(
+            status_code=400,
+            detail="Quantity harus lebih dari 0"
+        )
+
+    if result == "stok_habis":
+        raise HTTPException(
+            status_code=400,
+            detail="Stok produk tidak mencukupi"
+        )
+
+    if not result:
+        raise HTTPException(
+            status_code=404,
+            detail="Item cart tidak ditemukan"
+        )
+
+    return {
+        "message": "Quantity cart berhasil diupdate",
+        "cart_total": result.total_harga
+    }
+
+@app.post("/cart/checkout/{user_id}")
+def checkout_cart(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+
+    cart = crud.checkout_cart(
+        db,
+        user_id
+    )
+
+    if not cart:
+        raise HTTPException(
+            status_code=404,
+            detail="Cart tidak ditemukan"
+        )
+
+    return {
+        "message": "Checkout berhasil",
+        "order_id": cart.id
+    }

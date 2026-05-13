@@ -37,6 +37,25 @@ class UserOut(UserBase):
     class Config:
         from_attributes = True
 
+# ======================================================
+# LOGIN
+# ======================================================
+
+class LoginRequest(BaseModel):
+
+    email: str
+
+    password: str
+
+
+class LoginResponse(BaseModel):
+
+    access_token: str
+
+    token_type: str
+
+    user: UserOut
+
 
 # ======================================================
 # CATEGORIES
@@ -294,3 +313,12 @@ class GroomingBookingOut(BaseModel):
     grooming_service: Optional[GroomingServiceOut]
     class Config:
         from_attributes = True
+
+# ======================================================
+# CART ITEMS
+# =======================================================
+
+class AddToCartRequest(BaseModel):
+    user_id: int
+    product_id: int
+    quantity: int

@@ -32,8 +32,9 @@ class StatusAdopsi(str, enum.Enum):
 # ENUM STATUS ORDER
 # ======================================================
 class StatusOrder(str, enum.Enum):
+    cart = "cart"
     pending = "pending"
-    dibayar = "dibayar"
+    paid = "paid"
     selesai = "selesai"
     dibatalkan = "dibatalkan"
 
