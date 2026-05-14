@@ -87,6 +87,7 @@ class CategoryOut(CategoryBase):
 class AnimalBase(BaseModel):
     nama_hewan: str
     umur: int
+    harga: int
     deskripsi: Optional[str] = None
     foto: Optional[str] = None
     kategori_id: int
@@ -99,6 +100,7 @@ class AnimalCreate(AnimalBase):
 class AnimalUpdate(BaseModel):
     nama_hewan: Optional[str] = None
     umur: Optional[int] = None
+    harga: Optional[int] = None
     deskripsi: Optional[str] = None
     foto: Optional[str] = None
     status_adopsi: Optional[str] = None

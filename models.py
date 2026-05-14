@@ -128,6 +128,8 @@ class Animals(Base):
 
     umur = Column(Integer, nullable=False)
 
+    harga = Column(Integer, nullable=False)
+
     deskripsi = Column(Text, nullable=True)
 
     foto = Column(String(255), nullable=True)
