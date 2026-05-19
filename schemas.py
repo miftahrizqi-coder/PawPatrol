@@ -112,6 +112,7 @@ class AnimalOut(BaseModel):
     id: int
     nama_hewan: str
     umur: int
+    harga: int
     deskripsi: Optional[str]
     foto: Optional[str]
 
@@ -264,15 +265,11 @@ class AnimalAdoptionCreate(AnimalAdoptionBase):
 
 class AnimalAdoptionUpdate(BaseModel):
     biaya_adopsi: Optional[int] = None
-    status: Optional[str] = None
-
 
 class AnimalAdoptionOut(BaseModel):
     id: int
 
     biaya_adopsi: int
-
-    status: str
 
     animal: Optional[AnimalOut]
 

@@ -32,11 +32,9 @@ class StatusAdopsi(str, enum.Enum):
 # ENUM STATUS ORDER
 # ======================================================
 class StatusOrder(str, enum.Enum):
-    cart = "cart"
     pending = "pending"
+    cart = "cart"
     paid = "paid"
-    selesai = "selesai"
-    dibatalkan = "dibatalkan"
 
 
 # ======================================================
@@ -247,7 +245,7 @@ class Orders(Base):
 
     status = Column(
         Enum(StatusOrder),
-        default=StatusOrder.pending
+        default=StatusOrder.paid    
     )
 
     created_at = Column(
@@ -338,11 +336,6 @@ class AnimalAdoptions(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     biaya_adopsi = Column(Integer, nullable=False)
-
-    status = Column(
-        Enum(StatusAdopsi),
-        default=StatusAdopsi.pending
-    )
 
     # ==================================================
     # FOREIGN KEY
